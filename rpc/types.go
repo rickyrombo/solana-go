@@ -432,6 +432,13 @@ type KeyedAccount struct {
 	Pubkey  solana.PublicKey `json:"pubkey"`
 	Account *Account         `json:"account"`
 }
+type GetProgramAccountsV2Opts struct {
+	GetProgramAccountsOpts
+
+	Limit            *uint64 `json:"limit,omitempty"`
+	PaginationKey    *string `json:"paginationKey,omitempty"`
+	ChangedSinceSlot *uint64 `json:"changedSinceSlot,omitempty"`
+}
 
 type GetConfirmedSignaturesForAddress2Opts struct {
 	Limit      *uint64          `json:"limit,omitempty"`
