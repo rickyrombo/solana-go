@@ -59,6 +59,15 @@ func (cl *Client) GetProgramAccountsV2WithOpts(
 				"length": opts.DataSlice.Length,
 			}
 		}
+		if opts.Limit != nil {
+			obj["limit"] = opts.Limit
+		}
+		if opts.PaginationKey != nil {
+			obj["paginationKey"] = opts.PaginationKey
+		}
+		if opts.ChangedSinceSlot != nil {
+			obj["changedSinceSlot"] = opts.ChangedSinceSlot
+		}
 	}
 
 	params := []interface{}{publicKey, obj}
