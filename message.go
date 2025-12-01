@@ -349,22 +349,19 @@ func (mx *Message) MarshalV0() ([]byte, error) {
 	}
 	buf = append([]byte{byte(versionNum + 127)}, buf...)
 
-	if mx.AddressTableLookups != nil && len(mx.AddressTableLookups) > 0 {
-		// wite length of address table lookups as u8
-		buf = append(buf, byte(len(mx.AddressTableLookups)))
-		for _, lookup := range mx.AddressTableLookups {
-			// write account pubkey
-			buf = append(buf, lookup.AccountKey[:]...)
-			// write writable indexes
-			bin.EncodeCompactU16Length(&buf, len(lookup.WritableIndexes))
-			buf = append(buf, lookup.WritableIndexes...)
-			// write readonly indexes
-			bin.EncodeCompactU16Length(&buf, len(lookup.ReadonlyIndexes))
-			buf = append(buf, lookup.ReadonlyIndexes...)
-		}
-	} else {
-		buf = append(buf, 0)
+	// wite length of address table lookups as u8
+	buf = append(buf, byte(len(mx.AddressTableLookups)))
+	for _, lookup := range mx.AddressTableLookups {
+		// write account pubkey
+		buf = append(buf, lookup.AccountKey[:]...)
+		// write writable indexes
+		bin.EncodeCompactU16Length(&buf, len(lookup.WritableIndexes))
+		buf = append(buf, lookup.WritableIndexes...)
+		// write readonly indexes
+		bin.EncodeCompactU16Length(&buf, len(lookup.ReadonlyIndexes))
+		buf = append(buf, lookup.ReadonlyIndexes...)
 	}
+
 	return buf, nil
 }
 
@@ -460,6 +457,19 @@ func (mx *Message) ResolveLookups() (err error) {
 	mx.AccountKeys = append(mx.AccountKeys, atlAccounts...)
 	mx.resolved = true
 
+	return nil
+}
+
+var ErrAlreadyResolved = fmt.Errorf("lookups already resolved")
+
+// ResolveLookupsWith resolves the address table lookups with the provided writable and readonly accounts,
+// assuming that the order of the accounts is correct.
+func (mx *Message) ResolveLookupsWith(writable, readonly PublicKeySlice) (err error) {
+	if mx.resolved {
+		return ErrAlreadyResolved
+	}
+	mx.AccountKeys = append(mx.AccountKeys, append(writable, readonly...)...)
+	mx.resolved = true
 	return nil
 }
 
@@ -818,6 +828,29 @@ func (m Message) isWritableInLookups(idx int) bool {
 	return idx-m.numStaticAccounts() < m.AddressTableLookups.NumWritableLookups()
 }
 
+// IsWritableStatic checks if the account is a writable account in the static accounts list, ignoring the accounts in the address table lookups.
+func (m *Message) IsWritableStatic(account PublicKey) bool {
+	// check only the static accounts (i.e. not the ones in the address table lookups); no check preconditions needed.
+	accountKeys := m.getStaticKeys()
+	index := 0
+	found := false
+	for idx, acc := range accountKeys {
+		if acc.Equals(account) {
+			found = true
+			index = idx
+		}
+	}
+	if !found {
+		return false
+	}
+	h := m.Header
+	if index >= int(h.NumRequiredSignatures) {
+		// unsignedAccountIndex < numWritableUnsignedAccounts
+		return index-int(h.NumRequiredSignatures) < (m.numStaticAccounts()-int(h.NumRequiredSignatures))-int(h.NumReadonlyUnsignedAccounts)
+	}
+	return index < int(h.NumRequiredSignatures-h.NumReadonlySignedAccounts)
+}
+
 func (m Message) IsWritable(account PublicKey) (bool, error) {
 	err := m.checkPreconditions()
 	if err != nil {
@@ -837,7 +870,7 @@ func (m Message) IsWritable(account PublicKey) (bool, error) {
 		}
 	}
 	if !found {
-		return false, err
+		return false, nil
 	}
 	h := m.Header
 
