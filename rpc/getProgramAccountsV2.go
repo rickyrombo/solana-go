@@ -26,7 +26,7 @@ import (
 func (cl *Client) GetProgramAccountsV2(
 	ctx context.Context,
 	publicKey solana.PublicKey,
-) (out GetProgramAccountsResult, err error) {
+) (out GetProgramAccountsV2Result, err error) {
 	return cl.GetProgramAccountsV2WithOpts(
 		ctx,
 		publicKey,
@@ -39,7 +39,7 @@ func (cl *Client) GetProgramAccountsV2WithOpts(
 	ctx context.Context,
 	publicKey solana.PublicKey,
 	opts *GetProgramAccountsV2Opts,
-) (out GetProgramAccountsResult, err error) {
+) (out GetProgramAccountsV2Result, err error) {
 	obj := M{
 		"encoding": "base64",
 	}

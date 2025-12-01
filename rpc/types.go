@@ -440,6 +440,12 @@ type GetProgramAccountsV2Opts struct {
 	ChangedSinceSlot *uint64 `json:"changedSinceSlot,omitempty"`
 }
 
+type GetProgramAccountsV2Result struct {
+	Accounts      []*KeyedAccount `json:"accounts"`
+	PaginationKey *string         `json:"paginationKey,omitempty"`
+	TotalResults  *uint64         `json:"totalResults,omitempty"`
+}
+
 type GetConfirmedSignaturesForAddress2Opts struct {
 	Limit      *uint64          `json:"limit,omitempty"`
 	Before     solana.Signature `json:"before,omitempty"`
